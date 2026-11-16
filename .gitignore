@@ -1,0 +1,11 @@
+*.db
+*.egg-info/
+*.sqlite
+.DS_Store
+.cache/
+.data/
+.env
+.pytest_cache/
+.venv/
+__pycache__/
+outputs/

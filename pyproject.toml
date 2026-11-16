@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "equity-agent"
+version = "0.1.0"
+description = "Equity research agent: company name or ticker in, memo with human review out."
+requires-python = ">=3.12"
+# Direct dependencies only. Exact versions live in requirements.txt.
+dependencies = [
+    "langgraph",
+    "langgraph-checkpoint-sqlite",
+    "langchain-anthropic",
+    "langsmith",
+    "pydantic>=2",
+    "pandas",
+    "yfinance",
+    "httpx",
+    "requests",
+    "pyyaml",
+    "aiosqlite",
+    "edgartools",
+    "gradio",
+    "weasyprint",
+    "Markdown",
+    "trafilatura",
+    "langchain-core",
+]
+
+[tool.setuptools]
+packages = ["equity_agent", "equity_agent.nodes"]
+
+[tool.setuptools.package-data]
+equity_agent = ["*.yaml"]

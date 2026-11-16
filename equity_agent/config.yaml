@@ -1,0 +1,89 @@
+# Validated defaults. Each line says where the value is used.
+# Rates are fractions (0.05 = 5%). Names ending in _pts are percentage points.
+
+scope:
+  # resolver: SIC codes rejected as banks (6021 to 6036) and insurance carriers incl. health plans (6311 to 6399).
+  # Brokers, card networks, asset managers and REITs are not on the list.
+  financial_sic_codes: [6021, 6022, 6029, 6035, 6036, 6311, 6321, 6324, 6331, 6351, 6361, 6399]
+
+  # resolver: a holding-company reorganisation can move a ticker to a new filer that has no 10-K yet, while the
+  # 10-K history stays with the old filer. successor CIK -> predecessor CIK; the predecessor's filings are used.
+  # Hand-maintained; remove an entry once the successor has filed its own 10-K.
+  successor_ciks:
+    2115436: 34088   # ExxonMobil Holdings Corp (XOM from Oct 2026) -> Exxon Mobil Corp
+
+checks:
+  mismatch_tolerance: 0.005      # data_gate: XBRL vs yfinance revenue, net income, diluted EPS; a larger relative gap becomes a DataGap
+
+news:
+  max_articles: 20               # news collector: articles handed to sentiment scoring (N), newest first
+  window_days: 30                # news collector: look-back window
+  text_cap_words: 1500           # sentiment: first words of each article sent to the model
+  low_coverage_min_scored: 5     # sentiment aggregate: fewer scored articles sets low_coverage (no average shown)
+
+filings:
+  section_token_cap: 30000       # filings collector: sections above this are chunked by sub-heading
+  min_section_chars: 2000        # filings collector: a section shorter than this is treated as a failed isolation
+
+valuation:
+  equity_risk_premium: 0.05      # valuation: CAPM equity risk premium (risk-free comes from the 10-year yield)
+  terminal_growth: 0.025         # valuation: Gordon growth terminal value, all scenarios
+  scenario_spread_pts: 3.0       # valuation: bear is base growth minus this, bull is base plus this
+  fade_target_growth: 0.03       # valuation: revenue growth fades linearly to this by year 5
+  margin_shift_pts: 2.0          # valuation: bear margin is the 3-year average minus this, bull is plus
+  near_zero_fcf_margin: 0.01     # valuation: free cash flow margin below this (latest year or 3-year average) means no DCF, comps only
+  min_peers: 3                   # valuation: fewer validated peers than this means no peer-multiple valuation
+  cost_of_debt_fallback_spread_pts: 2.0   # valuation: cost of debt = 10-year yield + this, only when the ledger has no interest expense or debt
+
+cost:
+  # llm wrapper: a thread stops before the next call once its logged cost (cost.json, all rounds) reaches the value for its profile.
+  # demo: Sonnet 5.5 cannot switch thinking off, so three real first drafts cost 0.46 to 0.70 (first drafts, measured). 1.00 leaves room for a revision round.
+  max_run_cost_usd: {dev: 0.50, demo: 1.00}
+
+feedback:
+  max_revision_rounds: 3         # route_feedback: after this many rounds only Approve or Cancel remain
+
+cache:
+  # Raw pulls are cached under .cache/ with their retrieved_at time; a pull older than this is fetched again.
+  market_data_ttl_hours: 12      # market data collector: yfinance prices, statements, info
+  filings_ttl_hours: 24          # filings collector: XBRL companyfacts and 10-K section text
+  macro_ttl_hours: 12            # macro collector: FRED series
+  news_ttl_hours: 6              # news collector: Finnhub list and fetched article text
+
+expected:
+  # data_gate coverage counts: items fetched against items expected, per area
+  market_data_items: 30          # 1 price series + 3 statements + 7 info fields + 9 technicals + 10 ratios
+  filings_sections: 3            # Items 1, 1A and 7 of the latest 10-K
+
+macro:
+  # Fixed series, chosen by code and never by the LLM. The sector table is hand-chosen. Sector names are
+  # yfinance sector names; a sector with no entry gets the common set only.
+  common_series: [DGS10, DGS2, FEDFUNDS, CPIAUCSL, UNRATE, GDPC1, VIXCLS, BAMLH0A0HYM2]
+  series:        # label and unit of the value; change: diff = value now minus a year ago, pct = growth over 12 months
+    DGS10:           {label: 10-year Treasury yield, unit: percent, change: diff}
+    DGS2:            {label: 2-year Treasury yield, unit: percent, change: diff}
+    FEDFUNDS:        {label: Federal funds effective rate, unit: percent, change: diff}
+    CPIAUCSL:        {label: Consumer price index (all items), unit: index, change: pct}
+    UNRATE:          {label: Unemployment rate, unit: percent, change: diff}
+    GDPC1:           {label: Real GDP, unit: USD billions, change: pct}
+    VIXCLS:          {label: VIX volatility index, unit: index, change: diff}
+    BAMLH0A0HYM2:    {label: High-yield credit spread, unit: percent, change: diff}
+    HOUST:           {label: Housing starts, unit: thousand units, change: pct}
+    MORTGAGE30US:    {label: 30-year fixed mortgage rate, unit: percent, change: diff}
+    RSAFS:           {label: Retail and food services sales, unit: USD millions, change: pct}
+    INDPRO:          {label: Industrial production index, unit: index, change: pct}
+    DCOILWTICO:      {label: WTI crude oil price, unit: USD per barrel, change: pct}
+    DHHNGSP:         {label: Henry Hub natural gas price, unit: USD per million BTU, change: pct}
+    CUSR0000SEHF01:  {label: Consumer price index (electricity), unit: index, change: pct}
+    CPIUFDSL:        {label: Consumer price index (food), unit: index, change: pct}
+    CPIMEDSL:        {label: Consumer price index (medical care), unit: index, change: pct}
+    PPIACO:          {label: Producer price index (all commodities), unit: index, change: pct}
+  sector_series:
+    Real Estate: [HOUST, MORTGAGE30US]
+    Consumer Cyclical: [HOUST, RSAFS]
+    Industrials: [INDPRO]
+    Energy: [DCOILWTICO, DHHNGSP]
+    Utilities: [DHHNGSP, CUSR0000SEHF01]
+    Consumer Defensive: [CPIUFDSL]
+    Healthcare: [CPIMEDSL]
+    Basic Materials: [PPIACO]

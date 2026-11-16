@@ -1,0 +1,21 @@
+# Role -> model ID, per profile. Nodes ask for a role through get_llm(role) and never name a model.
+# Exact IDs, no date suffix. Profile comes from EQUITY_AGENT_PROFILE; with the variable unset the default is demo (the expensive one:
+# a first draft costs $0.46 to $0.70). Development and tests use dev.
+profiles:
+  dev:   # Haiku for every role: the cheap profile for development and testing (about $0.04 to $0.05 per first draft)
+    extract: claude-haiku-5-5
+    analyst: claude-haiku-5-5
+    writer: claude-haiku-5-5
+  demo:  # the default and the published agent: Sonnet only where judgement and writing matter, Haiku for extraction and sentiment
+    extract: claude-haiku-5-5
+    analyst: claude-sonnet-5-5
+    writer: claude-sonnet-5-5
+
+# Models that accept thinking={"type": "disabled"}. Sonnet 5.5 refuses it (400: "omit thinking to use adaptive thinking"), so for
+# those models free-text calls keep adaptive thinking and get a larger token budget instead (see llm.get_llm).
+thinking_can_be_disabled: [claude-haiku-5-5]
+
+# USD per million tokens, Anthropic list prices (prompts under 100K tokens). Used only by the cost log.
+prices:
+  claude-haiku-5-5:  {input: 0.10, output: 0.50}
+  claude-sonnet-5-5: {input: 2.00, output: 10.00}
